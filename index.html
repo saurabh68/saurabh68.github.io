@@ -3,14 +3,113 @@
 <script src='https://d3js.org/d3.v5.min.js'></script>
 <head>
     <meta charset="UTF-8">
-    <title>Narrative Visualization</title>
+    <title>CS416-Narrative Visualization-SS</title>
 </head>
+<style>
+/*.bar:hover {
+  fill: lightblue;
+}*/
+#tooltip {
+  opacity: 0;
+  position: absolute;
+  text-align: center;
+  //width: 60px;
+  //height: 40px;
+  background: lightblue;
+  border: solid;
+  border-width: 1px;
+  border-radius: 2.5px;
+  padding: 5px;
+}
+</style>
 <body>
-
+  <h1>California "A Small Business Paradise"</h1>
+  <svg width="900" height="500"></svg>
+  <div id="tooltip">Hello</div>
 </body>
 
 <script type="text/javascript">
-  var data =  d3.csv('overview-full-data-min.csv');
+  
+
+async function init(){
+  var data = await d3.csv("https://saurabh68.github.io/overview-full-data-min.csv");
+  var states = ["CA", "MA", "VA", "MD", "NY", "CO", "TX", "OH", "PA", "NJ"];
+  var colors = d3.scaleOrdinal().domain(states).range(d3.schemeCategory10);
   console.log(data[0]);
+
+  var scene1_data = d3.nest()
+  .key(function(d){return d.State;})
+  //.sortKeys(d3.ascending)
+  .rollup(function(leaves) {return {"count":leaves.length 
+    //,"amount":d3.sum(leaves, function(d){ return d.});
+  }})
+  .entries(data);
+  
+  console.log(scene1_data)
+var formatComma = d3.format(",");
+var formatMoney = function(d) { return "$" + d3.format(",.2f").call(d); };
+
+var svg = d3.select("svg"),
+    margin = {top: 20, right: 20, bottom: 50, left: 60},
+    width = +svg.attr("width") - margin.left - margin.right,
+    height = +svg.attr("height") - margin.top - margin.bottom;
+
+var x = d3.scaleBand()
+          .domain(scene1_data.map(function(d) { return d.key; }))
+          .rangeRound([0, width])
+          .padding(0.1);
+var y = d3.scaleLinear()
+          .domain([0, d3.max(scene1_data, function(d) { return d.value.count; })])
+          .rangeRound([height, 0]);
+var tooltip = d3.select("#tooltip");
+
+d3.select("svg").append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+  .selectAll()
+  .data(scene1_data)
+  .enter().append("rect")
+  .attr("class", "bar")
+  .attr("fill", function(d){ return colors(d.key) })
+  .attr("x", function(d) { return x(d.key); })
+  .attr("y", function(d) { return y(d.value.count); })
+  .attr("width", x.bandwidth())
+  .attr("height", function(d) { return height - y(d.value.count); })
+  .on("mouseover", function(d) {
+    tooltip.style("opacity", 0.8)
+            .style("left", (+d3.select(this).attr("x") + margin.left) + "px")
+            .style("top", (+d3.select(this).attr("y") + margin.top + 45) + "px")
+            .html("#Awards: " + formatComma(d.value.count));
+            d3.select(this).style("stroke", "black");
+  })
+  .on("mouseout", function(){ 
+    tooltip.style("opacity", 0);
+     d3.select(this).style("stroke", "none");
+});
+
+d3.select("svg").append("g")
+  .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+  .call(d3.axisLeft(y).tickFormat(d3.format(".1s")))
+  .append("text")
+    .attr("transform", "rotate(-90)")
+    .attr("x", -(height/2))
+    .attr("y", -(margin.left - 20))
+    .style("text-anchor", "middle")
+    .style("fill", "black")
+    .style("font-size", "15px")
+    .text("No. of Awards");
+
+d3.select("svg").append("g")
+  .attr("transform", "translate(" + margin.left + "," + (height + margin.top) + ")")
+  .call(d3.axisBottom(x))
+  .append("text")
+    .attr("x", width/2)
+    .attr("y", margin.bottom - 10)
+    .style("text-anchor", "middle")
+    .style("fill", "black")
+    .style("font-size", "15px")
+    .text("States");
+}
+
+init();
 </script>
 </html>
