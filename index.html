@@ -41,7 +41,7 @@ async function init(){
   .key(function(d){return d.State;})
   //.sortKeys(d3.ascending)
   .rollup(function(leaves) {return {"count":leaves.length 
-    //,"amount":d3.sum(leaves, function(d){ return d.});
+    ,"amount":d3.sum(leaves, function(d){ return parseFloat(d.'Award Amount');});
   }})
   .entries(data);
   
