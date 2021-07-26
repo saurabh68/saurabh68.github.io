@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src='https://d3js.org/d3.v5.min.js'></script>
+<head>
+    <meta charset="UTF-8">
+    <title>CS416-Narrative Visualization-SS</title>
+</head>
+<style>
+    #tooltip {
+        opacity: 0;
+        position: absolute;
+        text-align: center;
+        background: lightblue;
+        border: solid;
+        border-width: 1px;
+        border-radius: 2.5px;
+        padding: 5px;
+    }
+</style>
+<body onload="init()">
+<h1>California "A Small Business Paradise"</h1>
+<h2>HUBZone Owned Small Businesses</h2>
+<svg width="900" height="500"></svg>
+<div id="tooltip"></div>
+<div><a href="scene-3.html">Previous</a></div>
+<div><a href="scene-5.html">Next</a></div>
+</body>
+
+<script type="text/javascript">
+
+    async function init() {
+        var data = await d3.csv("https://saurabh68.github.io/overview-full-data-min.csv");
+        var states = ["CA", "MA", "VA", "MD", "NY", "CO", "TX", "OH", "PA", "NJ"];
+        var colors = d3.scaleOrdinal().domain(states).range(d3.schemeCategory10);
+        console.log(data[0]);
+        
+        //data for scene 2
+        var scene2_data = d3.nest()
+            .key(function (d) {
+                return d.state;
+            }).key(function (d){return d.year})
+            .rollup(function (leaves) {
+                return {
+                    "count": leaves.length
+                    , "amount": d3.sum(leaves, function (d) {
+                        return parseFloat(d.amount);
+                    })
+                }
+            })
+            .entries(data.filter(function(d){return "Y" === d.hubzone_owned}));
+        var counts = [];
+        var years = [];
+        scene2_data.forEach(function(v1,i1,a1){
+            v1.values.forEach(function(v2,i2,a2){
+                counts.push(v2.value.count);
+                years.push(+v2.key);
+            })
+        })
+        console.log(counts);
+        console.log(scene2_data[0]);
+
+        var formatComma = d3.format(",");
+        var formatMoney = function (d) {
+            return "$" + d3.format(",.2f")(d);
+        };
+
+        var svg = d3.select("svg"),
+            margin = {top: 20, right: 20, bottom: 50, left: 60},
+            width = +svg.attr("width") - margin.left - margin.right,
+            height = +svg.attr("height") - margin.top - margin.bottom;
+        var tooltip = d3.select("#tooltip");
+
+        //x-scale
+        var x = d3.scaleLinear().domain([d3.min(years), d3.max(years)])
+            .range([0, width]);
+
+        //y-scale
+        var y = d3.scaleLinear().domain([d3.min(counts), d3.max(counts)])
+                .range([height, 0]);
+
+        //x-axis
+        d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + (height + margin.top) + ")")
+            .call(d3.axisBottom(x).tickFormat(d3.format("d")))
+            .append("text")
+            .attr("x", width / 2)
+            .attr("y", margin.bottom - 10)
+            .style("text-anchor", "middle")
+            .style("fill", "black")
+            .style("font-size", "15px")
+            .text("Years");
+
+        //y-axis
+        d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .call(d3.axisLeft(y)) //.tickFormat(d3.format(".1s"))
+            .append("text")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -(height / 2))
+            .attr("y", -(margin.left - 20))
+            .style("text-anchor", "middle")
+            .style("fill", "black")
+            .style("font-size", "15px")
+            .text("No. of Awards");
+
+        //line function
+        var lineGenerator = d3.line().x(function(d){return x(+d.key)})
+                                    .y(function(d){return y(d.value.count)})
+                                    ;
+
+        scene2_data.forEach(function(v) {
+        var state = v.key;
+        var line_data = v.values;
+        
+       var svg = d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        //path
+        svg.append("path").attr("d", lineGenerator(line_data))
+           .attr("stroke", colors(state))
+           .attr("stroke-width", 2)
+           .attr("fill", "none");
+
+        //dots
+        var radius = 5;
+        var hover_radius = 6;
+        svg.selectAll().data(line_data)
+            .enter().append("circle")
+            .attr("cx", function(d) {return x(+d.key)})
+            .attr("cy", function(d) {return y(d.value.count)})
+            .attr("r", radius)
+            .attr("fill", colors(state))
+            .on("mouseover", function (d) {
+                tooltip.style("opacity", 0.8)
+                    .style("left", +d3.event.pageX + "px")
+                    .style("top", +d3.event.pageY + "px")
+                    .html(state + "(" + d.key + ")" + "<br>#Awards: " + formatComma(d.value.count) + "<br> Amount: " + formatMoney(d.value.amount));
+                d3.select(this).attr("r", hover_radius);
+            })
+            .on("mouseout", function () {
+                tooltip.style("opacity", 0);
+                d3.select(this).attr("r", radius);
+            });
+
+        });
+    }
+
+</script>
+</html>
