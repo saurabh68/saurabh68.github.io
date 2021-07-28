@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src='https://d3js.org/d3.v5.min.js'></script>
 <head>
     <meta charset="UTF-8">
+    <script src='https://d3js.org/d3.v5.min.js'></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
     <title>CS416-Narrative Visualization-SS</title>
 </head>
 <style>
@@ -16,15 +17,18 @@
         border-radius: 2.5px;
         padding: 5px;
     }
+
     ul {
         list-style-type: none;
         margin: 0;
         padding: 0;
         overflow: hidden;
     }
+
     li {
         float: left;
     }
+
     li a {
         display: block;
         padding: 8px;
@@ -39,6 +43,8 @@
 <ul>
     <li><a href="scene-4.html">Previous</a></li>
 </ul>
+<button onclick="removeLine()">Remove MA</button>
+<button onclick="removeLine()">Add MA</button>
 </body>
 
 <script type="text/javascript">
@@ -46,7 +52,7 @@
     async function init() {
         var data = await d3.csv("https://saurabh68.github.io/overview-full-data-min.csv");
         var states = ["CA", "MA", "VA", "MD", "NY", "CO", "TX", "OH", "PA", "NJ"];
-        var colors = d3.scaleOrdinal().domain(states).range(d3.schemeCategory10);
+        colors = d3.scaleOrdinal().domain(states).range(d3.schemeCategory10);
         //console.log(data[0]);
 
         //data for scene 5
@@ -86,18 +92,18 @@
             return "$" + d3.format(",.2f")(d);
         };
 
-        var svg = d3.select("svg"),
+        svg = d3.select("svg"),
             margin = {top: 20, right: 20, bottom: 50, left: 60},
             width = +svg.attr("width") - margin.left - margin.right,
             height = +svg.attr("height") - margin.top - margin.bottom;
-        var tooltip = d3.select("#tooltip");
+        tooltip = d3.select("#tooltip");
 
         //x-scale
-        var x = d3.scaleLinear().domain([d3.min(years), d3.max(years)])
+        x = d3.scaleLinear().domain([d3.min(years), d3.max(years)])
             .range([0, width]);
 
         //y-scale
-        var y = d3.scaleLinear().domain([d3.min(counts), d3.max(counts)])
+        y = d3.scaleLinear().domain([d3.min(counts), d3.max(counts)])
             .range([height, 0]);
 
         //x-axis
@@ -126,7 +132,7 @@
             .text("No. of Awards");
 
         //line function
-        var lineGenerator = d3.line().x(function (d) {
+        lineGenerator = d3.line().x(function (d) {
                 return x(+d.key)
             })
                 .y(function (d) {
@@ -134,45 +140,54 @@
                 })
         ;
 
-        scene5_data.forEach(function (v) {
-            var state = v.key;
-            var line_data = v.values;
-
-            var svg = d3.select("svg").append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-            //path
-            svg.append("path").attr("d", lineGenerator(line_data))
-                .attr("stroke", colors(state))
-                .attr("stroke-width", 2)
-                .attr("fill", "none");
-
-            //dots
-            var radius = 5;
-            var hover_radius = 6;
-            svg.selectAll().data(line_data)
-                .enter().append("circle")
-                .attr("cx", function (d) {
-                    return x(+d.key)
-                })
-                .attr("cy", function (d) {
-                    return y(d.value.count)
-                })
-                .attr("r", radius)
-                .attr("fill", colors(state))
-                .on("mouseover", function (d) {
-                    tooltip.style("opacity", 0.8)
-                        .style("left", +d3.event.pageX + "px")
-                        .style("top", +d3.event.pageY + "px")
-                        .html(state + "(" + d.key + ")" + "<br>#Awards: " + formatComma(d.value.count) + "<br> Amount: " + formatMoney(d.value.amount));
-                    d3.select(this).attr("r", hover_radius);
-                })
-                .on("mouseout", function () {
-                    tooltip.style("opacity", 0);
-                    d3.select(this).attr("r", radius);
-                });
-
-        });
+        scene5_data.forEach(addLine);
     }
 
+    function removeLine(){
+        d3.select("#MA-line").remove();
+    }
+
+    function addLine(v){
+        var state = v.key;
+        var line_data = v.values;
+
+        var svg = d3.select("svg").append("g")
+            .attr("id", state+"-"+"line")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+        //path
+        svg.append("path").attr("d", lineGenerator(line_data))
+            .attr("stroke", colors(state))
+            .attr("stroke-width", 2)
+            .attr("fill", "none");
+
+        //dots
+        var radius = 5;
+        var hover_radius = 6;
+        svg.selectAll().data(line_data)
+            .enter().append("circle")
+            .attr("id", function (d) {
+                return state + "-" + d.key;
+            })
+            .attr("cx", function (d) {
+                return x(+d.key)
+            })
+            .attr("cy", function (d) {
+                return y(d.value.count)
+            })
+            .attr("r", radius)
+            .attr("fill", colors(state))
+            .on("mouseover", function (d) {
+                tooltip.style("opacity", 0.8)
+                    .style("left", +d3.event.pageX + "px")
+                    .style("top", +d3.event.pageY + "px")
+                    .html(state + "(" + d.key + ")" + "<br>#Awards: " + formatComma(d.value.count) + "<br> Amount: " + formatMoney(d.value.amount));
+                d3.select(this).attr("r", hover_radius);
+            })
+            .on("mouseout", function () {
+                tooltip.style("opacity", 0);
+                d3.select(this).attr("r", radius);
+            });
+
+    }
 </script>
 </html>

@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src='https://d3js.org/d3.v5.min.js'></script>
 <head>
     <meta charset="UTF-8">
+    <script src='https://d3js.org/d3.v5.min.js'></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
     <title>CS416-Narrative Visualization-SS</title>
 </head>
 <style>
@@ -16,15 +17,18 @@
         border-radius: 2.5px;
         padding: 5px;
     }
+
     ul {
         list-style-type: none;
         margin: 0;
         padding: 0;
         overflow: hidden;
     }
+
     li {
         float: left;
     }
+
     li a {
         display: block;
         padding: 8px;
@@ -149,6 +153,9 @@
             var hover_radius = 6;
             svg.selectAll().data(line_data)
                 .enter().append("circle")
+                .attr("id", function (d) {
+                    return state + "-" + d.key;
+                })
                 .attr("cx", function (d) {
                     return x(+d.key)
                 })
@@ -170,6 +177,38 @@
                 });
 
         });
+
+        //annotations
+        const type = d3.annotationCustomType(
+            d3.annotationXYThreshold, {
+                "className": "custom",
+                "connector": {"end": "arrow"},
+                "note": {"lineType": "horizontal"}
+            })
+        var connectorX1 = d3.select("#CA-2016").attr("cx");
+        var connectorY1 = d3.select("#CA-2016").attr("cy");
+        var subjectX1 = d3.select("#CA-2013").attr("cx");
+        var subjectX2 = d3.select("#CA-2019").attr("cx");
+        const annotations = [{
+            note: {
+                label: "Although HubZone Owned awards dropped significantly from Virginia they " +
+                    "have been on the rise from California since 2013"
+            },
+            x: connectorX1 - 20,
+            y: connectorY1 - 20,
+            dy: -55,
+            dx: -25,
+            subject: {
+                x1: subjectX1,
+                x2: subjectX2
+            }
+
+        }];
+        const makeAnnotations = d3.annotation().textWrap(150).type(type).annotations(annotations);
+        d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .attr("class", "annotation-group").call(makeAnnotations);
+
     }
 
 </script>

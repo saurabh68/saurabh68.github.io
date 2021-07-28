@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src='https://d3js.org/d3.v5.min.js'></script>
 <head>
     <meta charset="UTF-8">
+    <script src='https://d3js.org/d3.v5.min.js'></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
     <title>CS416-Narrative Visualization-SS</title>
 </head>
 <style>
@@ -16,21 +17,25 @@
         border-radius: 2.5px;
         padding: 5px;
     }
-    #annotation {
+
+    /*#annotation {
         position: absolute;
         text-align: center;
         max-width: 100px;
         font-size: 12px;
-    }
+    }*/
+
     ul {
         list-style-type: none;
         margin: 0;
         padding: 0;
         overflow: hidden;
     }
+
     li {
         float: left;
     }
+
     li a {
         display: block;
         padding: 8px;
@@ -41,7 +46,7 @@
 <h1>California "A Small Business Paradise"</h1>
 <svg width="900" height="500"></svg>
 <div id="tooltip"></div>
-<div id="annotation"></div>
+<!--<div id="annotation"></div>-->
 <ul>
     <li><a href="scene-2.html">Next</a></li>
 </ul>
@@ -107,13 +112,9 @@
             .attr("x", function (d) {
                 return x(d.key);
             })
-            .attr("y", function (d) {
-                return y(d.value.count);
-            })
+            .attr("y", height)
             .attr("width", x.bandwidth())
-            .attr("height", function (d) {
-                return height - y(d.value.count);
-            })
+            .attr("height", 0)
             .attr("id", function (d) {
                 return d.key;
             })
@@ -127,6 +128,13 @@
             .on("mouseout", function () {
                 tooltip.style("opacity", 0);
                 d3.select(this).style("stroke", "none");
+            })
+            .transition(d3.transition().ease(d3.easeSin).duration(1000))
+            .attr("y", function (d) {
+                return y(d.value.count);
+            })
+            .attr("height", function (d) {
+                return height - y(d.value.count);
             });
 
         //y-axis
@@ -156,9 +164,9 @@
 
         //annotations
         //triangle
-        ca = d3.select("#CA");
+        /*ca = d3.select("#CA");
         var triangle_x = +ca.attr("x") + +ca.attr("width") + 5 + margin.left;
-        var triangle_y = ((height - +ca.attr("y")) / 3) + margin.top;
+        var triangle_y = (height / 3) + margin.top;
         var triangle = d3.symbol().type(d3.symbolTriangle).size(50);
         d3.select("svg")
             .append("g")
@@ -183,7 +191,31 @@
             .attr("y", triangle_y + 5)
             .style("fill", "black")
             .style("font-size", "15px")
-            .text("Highest number of awards overall");
+            .text("Highest number of awards overall");*/
+
+        //annotations
+        const type = d3.annotationCustomType(
+            d3.annotationCalloutElbow, {
+                "className": "custom",
+                "connector": {"end": "arrow"}, "note": {"align": "left"}
+            })
+        const ca = d3.select("#CA");
+        const connectorX1 = +ca.attr("x") + +ca.attr("width") + 5;
+        const connectorY1 = (height / 3);
+        const annotations = [{
+            note: {
+                label: "Highest number of awards overall are from California"
+            },
+            x: connectorX1,
+            y: connectorY1,
+            dy: -50,
+            dx: 65
+
+        }];
+        const makeAnnotations = d3.annotation().textWrap(125).type(type).annotations(annotations);
+        d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .attr("class", "annotation-group").call(makeAnnotations);
     }
 
 </script>

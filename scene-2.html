@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src='https://d3js.org/d3.v5.min.js'></script>
 <head>
     <meta charset="UTF-8">
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
+    <script src='https://d3js.org/d3.v5.min.js'></script>
     <title>CS416-Narrative Visualization-SS</title>
 </head>
 <style>
@@ -16,20 +17,24 @@
         border-radius: 2.5px;
         padding: 5px;
     }
+
     ul {
         list-style-type: none;
         margin: 0;
         padding: 0;
         overflow: hidden;
     }
+
     li {
         float: left;
     }
+
     li a {
         display: block;
         padding: 8px;
         background-color: #dddddd;
     }
+
 </style>
 <body onload="init()">
 <h1>California "A Small Business Paradise"</h1>
@@ -54,9 +59,10 @@
         var scene2_data = d3.nest()
             .key(function (d) {
                 return d.state;
-            }).key(function (d) {
+            }).sortKeys(d3.ascending)
+            .key(function (d) {
                 return d.year
-            })
+            }).sortKeys(d3.ascending)
             .rollup(function (leaves) {
                 return {
                     "count": leaves.length
@@ -135,20 +141,31 @@
         scene2_data.forEach(function (v) {
             var state = v.key;
             var line_data = v.values;
-
+            //console.log(line_data);
             var svg = d3.select("svg").append("g")
                 .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
             //path
-            svg.append("path").attr("d", lineGenerator(line_data))
+            svg.append("path")
+                .attr("id", state)
+                .attr("d", lineGenerator(line_data))
                 .attr("stroke", colors(state))
                 .attr("stroke-width", 2)
                 .attr("fill", "none");
+            var path = d3.select("#" + state);
+            const pathLength = path.node().getTotalLength();
+            path.attr("stroke-dashoffset", pathLength)
+                .attr("stroke-dasharray", pathLength)
+                .transition(d3.transition().ease(d3.easeSin).duration(2500))
+                .attr("stroke-dashoffset", 0);
 
             //dots
             var radius = 5;
             var hover_radius = 6;
             svg.selectAll().data(line_data)
                 .enter().append("circle")
+                .attr("id", function (d) {
+                    return state + "-" + d.key
+                })
                 .attr("cx", function (d) {
                     return x(+d.key)
                 })
@@ -170,6 +187,38 @@
                 });
 
         });
+
+        //annotations
+        const type = d3.annotationCustomType(
+            d3.annotationXYThreshold, {
+                "className": "custom",
+                "connector": {"end": "arrow"},
+                "note": {"lineType": "horizontal"}
+            })
+        var connectorX1 = d3.select("#CA-2011").attr("cx");
+        var connectorY1 = d3.select("#CA-2011").attr("cy");
+        var subjectX1 = d3.select("#CA-2004").attr("cx");
+        var subjectX2 = d3.select("#CA-2019").attr("cx");
+        const annotations = [{
+            note: {
+                label: "Socially & Economically Disadvantaged companies in California has received most " +
+                    "no of awards since 2004."
+            },
+            x: connectorX1 - 20,
+            y: connectorY1 - 20,
+            dy: -25,
+            dx: 50,
+            subject: {
+                x1: subjectX1,
+                x2: subjectX2
+            }
+
+        }];
+        const makeAnnotations = d3.annotation().textWrap(250).type(type).annotations(annotations);
+        d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .attr("class", "annotation-group").call(makeAnnotations);
+
     }
 
 </script>
