@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
     <script src='https://d3js.org/d3.v5.min.js'></script>
+    <script src="https://rawgit.com/susielu/d3-annotation/master/d3-annotation.min.js"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css"
+          integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
     <title>CS416-Narrative Visualization-SS</title>
 </head>
 <style>
@@ -17,46 +19,79 @@
         border-radius: 2.5px;
         padding: 5px;
     }
-
-    ul {
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
-        overflow: hidden;
-    }
-
-    li {
-        float: left;
-    }
-
-    li a {
-        display: block;
-        padding: 8px;
-        background-color: #dddddd;
-    }
-
 </style>
 <body onload="init()">
-<h1>California "A Small Business Paradise"</h1>
-<h2>Socially & Economically Disadvantaged Small Businesses</h2>
-<svg width="900" height="500"></svg>
+<div align="center" class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <h1>California "A Small Business Paradise"</h1>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-8">
+            <svg width="900" height="500"></svg>
+            <form class="form-inline">
+                <div class="form-group">
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="CO-checkbox"
+                               onclick="checkboxEvent(this, 'CO')" checked/>
+                        CO</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="MA-checkbox"
+                               onclick="checkboxEvent(this, 'MA')" checked/>
+                        MA</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="MD-checkbox"
+                               onclick="checkboxEvent(this, 'MD')" checked/>
+                        MD</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="NJ-checkbox"
+                               onclick="checkboxEvent(this, 'NJ')" checked/>
+                        NJ</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="NY-checkbox"
+                               onclick="checkboxEvent(this, 'NY')" checked/>
+                        NY</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="OH-checkbox"
+                               onclick="checkboxEvent(this, 'OH')" checked/>
+                        OH</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="PA-checkbox"
+                               onclick="checkboxEvent(this, 'PA')" checked/>
+                        PA</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="TX-checkbox"
+                               onclick="checkboxEvent(this, 'TX')" checked/>
+                        TX</label></div>
+                    <div class="checkbox"><label>
+                        <input type="checkbox" id="VA-checkbox"
+                               onclick="checkboxEvent(this, 'VA')" checked/>
+                        VA</label></div>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4"><h2>Socially & Economically Disadvantaged Small Businesses</h2></div>
+    </div>
+    <div class="row">
+        <div class="col-md-4" align="left">
+            <a class="btn btn-primary" href="index.html" role="button">Previous</a>
+        </div>
+        <div class="col-md-4" align="right">
+            <a class="btn btn-primary" href="scene-3.html" role="button">Next</a>
+        </div>
+    </div>
+</div>
 <div id="tooltip"></div>
-<ul>
-    <li><a href="index.html">Previous</a></li>
-    <li><a href="scene-3.html">Next</a></li>
-</ul>
 </body>
 
 <script type="text/javascript">
 
     async function init() {
-        var data = await d3.csv("https://saurabh68.github.io/overview-full-data-min.csv");
-        var states = ["CA", "MA", "VA", "MD", "NY", "CO", "TX", "OH", "PA", "NJ"];
-        var colors = d3.scaleOrdinal().domain(states).range(d3.schemeCategory10);
-        //console.log(data[0]);
-
+        //load data from CSV
+        const data = await d3.csv("https://saurabh68.github.io/overview-full-data-min.csv");
         //data for scene 2
-        var scene2_data = d3.nest()
+        scene2_data = d3.nest()
             .key(function (d) {
                 return d.state;
             }).sortKeys(d3.ascending)
@@ -74,34 +109,46 @@
             .entries(data.filter(function (d) {
                 return "Y" === d.socially_and_economically_disadvantaged
             }));
+
+        // create list of states, award counts and years, this will be used to create colors and axes
+        let states = []
         var counts = [];
         var years = [];
+        flatten_Data = []; //for creating mouseover voronoi regions
         scene2_data.forEach(function (v1, i1, a1) {
+            states.push(v1.key);
             v1.values.forEach(function (v2, i2, a2) {
                 counts.push(v2.value.count);
                 years.push(+v2.key);
+                flatten_Data.push({
+                    state: v1.key,
+                    year: v2.key,
+                    count: v2.value.count,
+                    amount: v2.value.amount
+                })
             })
         })
-        //console.log(counts);
-        //console.log(scene2_data[0]);
 
-        var formatComma = d3.format(",");
-        var formatMoney = function (d) {
+        //formatting for numbers and currency
+        formatComma = d3.format(",");
+        formatMoney = function (d) {
             return "$" + d3.format(",.2f")(d);
         };
 
-        var svg = d3.select("svg"),
-            margin = {top: 20, right: 20, bottom: 50, left: 60},
-            width = +svg.attr("width") - margin.left - margin.right,
-            height = +svg.attr("height") - margin.top - margin.bottom;
-        var tooltip = d3.select("#tooltip");
+        margin = {top: 20, right: 20, bottom: 50, left: 60};
+        width = +d3.select("svg").attr("width") - margin.left - margin.right;
+        height = +d3.select("svg").attr("height") - margin.top - margin.bottom;
+        tooltip = d3.select("#tooltip");
+
+        //color scale
+        colors = d3.scaleOrdinal().domain(states).range(d3.schemeCategory10);
 
         //x-scale
-        var x = d3.scaleLinear().domain([d3.min(years), d3.max(years)])
+        x = d3.scaleLinear().domain([d3.min(years), d3.max(years)])
             .range([0, width]);
 
         //y-scale
-        var y = d3.scaleLinear().domain([d3.min(counts), d3.max(counts)])
+        y = d3.scaleLinear().domain([d3.min(counts), d3.max(counts)])
             .range([height, 0]);
 
         //x-axis
@@ -129,64 +176,55 @@
             .style("font-size", "15px")
             .text("No. of Awards");
 
+        // color legends
+        d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .selectAll()
+            .data(states).enter().append("rect")
+            .attr("x", 5)
+            .attr("y", function (d, i) {
+                return i * 15
+            })
+            .attr("width", 10)
+            .attr("height", 15)
+            .attr("fill", function (d) {
+                return colors(d)
+            });
+
+        d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            .selectAll()
+            .data(states).enter().append("text")
+            .attr("x", 25)
+            .attr("y", function (d, i) {
+                return i * 15 + 10
+            })
+            .style("text-anchor", "middle")
+            .style("fill", "black")
+            .style("font-size", "9px")
+            .text(function (d) {
+                return d
+            });
+
         //line function
-        var lineGenerator = d3.line().x(function (d) {
+        lineGenerator = d3.line()
+            .x(function (d) {
                 return x(+d.key)
             })
-                .y(function (d) {
-                    return y(d.value.count)
-                })
-        ;
+            .y(function (d) {
+                return y(d.value.count)
+            });
 
-        scene2_data.forEach(function (v) {
-            var state = v.key;
-            var line_data = v.values;
-            //console.log(line_data);
-            var svg = d3.select("svg").append("g")
-                .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-            //path
-            svg.append("path")
-                .attr("id", state)
-                .attr("d", lineGenerator(line_data))
-                .attr("stroke", colors(state))
-                .attr("stroke-width", 2)
-                .attr("fill", "none");
-            var path = d3.select("#" + state);
-            const pathLength = path.node().getTotalLength();
-            path.attr("stroke-dashoffset", pathLength)
-                .attr("stroke-dasharray", pathLength)
-                .transition(d3.transition().ease(d3.easeSin).duration(2500))
-                .attr("stroke-dashoffset", 0);
+        scene2_data.forEach(addLine);
 
-            //dots
-            var radius = 5;
-            var hover_radius = 6;
-            svg.selectAll().data(line_data)
-                .enter().append("circle")
-                .attr("id", function (d) {
-                    return state + "-" + d.key
-                })
-                .attr("cx", function (d) {
-                    return x(+d.key)
-                })
-                .attr("cy", function (d) {
-                    return y(d.value.count)
-                })
-                .attr("r", radius)
-                .attr("fill", colors(state))
-                .on("mouseover", function (d) {
-                    tooltip.style("opacity", 0.8)
-                        .style("left", +d3.event.pageX + "px")
-                        .style("top", +d3.event.pageY + "px")
-                        .html(state + "(" + d.key + ")" + "<br>#Awards: " + formatComma(d.value.count) + "<br> Amount: " + formatMoney(d.value.amount));
-                    d3.select(this).attr("r", hover_radius);
-                })
-                .on("mouseout", function () {
-                    tooltip.style("opacity", 0);
-                    d3.select(this).attr("r", radius);
-                });
+        // reset the checkboxes
+        const checkBoxes = document.getElementsByTagName("input");
+        for (let i = 0; i < checkBoxes.length; i++) {
+            checkBoxes[i].checked = true;
+        }
 
-        });
+        // create voronoi regions
+        createVoronoiRegions(flatten_Data);
 
         //annotations
         const type = d3.annotationCustomType(
@@ -221,5 +259,155 @@
 
     }
 
+    // function to handle checkbox click event
+    function checkboxEvent(ele, state) {
+        if (ele.checked != true) {
+            removeState(state);
+        } else {
+            addState(state);
+        }
+    }
+
+    //remove a state
+    function removeState(state) {
+        d3.selectAll("#" + state + "-line").remove();
+        updateVoronoiRegions();
+    }
+
+    //add a state
+    function addState(state) {
+        const current_Data = scene2_data.filter(function (d) {
+            return state == d.key
+        });
+        addLine(current_Data[0]);
+        updateVoronoiRegions();
+    }
+
+    // function to add line chart for a state
+    function addLine(state_data) {
+        let state = state_data.key;
+        let line_data = state_data.values;
+
+        const svg = d3.select("svg").append("g")
+            .attr("id", state + "-line")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        //path
+        svg.append("path")
+            .attr("d", lineGenerator(line_data))
+            .attr("stroke", colors(state))
+            .attr("stroke-width", 2)
+            .attr("fill", "none");
+
+        // create transitions
+        let path = d3.select("#" + state + "-line").select("path");
+        const pathLength = path.node().getTotalLength();
+        path.attr("stroke-dashoffset", pathLength)
+            .attr("stroke-dasharray", pathLength)
+            .transition(d3.transition().ease(d3.easeSin).duration(2500))
+            .attr("stroke-dashoffset", 0);
+
+        //dots
+        const radius = 2;
+        svg.selectAll().data(line_data)
+            .enter().append("circle")
+            .attr("id", function (d) {
+                return state + "-" + d.key;
+            })
+            .attr("cx", function (d) {
+                return x(+d.key)
+            })
+            .attr("cy", function (d) {
+                return y(d.value.count)
+            })
+            .attr("r", radius)
+            .attr("fill", "none");
+    }
+
+    // function to update voronoi regions everytime user check or un-check a state checkbox
+    function updateVoronoiRegions() {
+        let selectedState = ["CA"]; // CA is always shown in the chart
+        if (document.getElementById("MA-checkbox").checked) selectedState.push("MA");
+        if (document.getElementById("VA-checkbox").checked) selectedState.push("VA");
+        if (document.getElementById("MD-checkbox").checked) selectedState.push("MD");
+        if (document.getElementById("NY-checkbox").checked) selectedState.push("NY");
+        if (document.getElementById("CO-checkbox").checked) selectedState.push("CO");
+        if (document.getElementById("TX-checkbox").checked) selectedState.push("TX");
+        if (document.getElementById("OH-checkbox").checked) selectedState.push("OH");
+        if (document.getElementById("PA-checkbox").checked) selectedState.push("PA");
+        if (document.getElementById("NJ-checkbox").checked) selectedState.push("NJ");
+
+        const current_voronoi_data = flatten_Data.filter(function (d) {
+            return selectedState.includes(d.state)
+        });
+        createVoronoiRegions(current_voronoi_data);
+    }
+
+    // function to create voronoi regions for mouseover
+    function createVoronoiRegions(voronoi_data) {
+        voronoiDiagram = d3.voronoi()
+            .x(d => x(d.year))
+            .y(d => y(d.count))
+            .size([width, height])(voronoi_data);
+
+        // limit how far away the mouse can be from finding a Voronoi site
+        voronoiRadius = width / 15;
+        let g = d3.select("svg").append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        d3.selectAll(".highlight-circle").remove();
+        // add a circle for indicating the highlighted point
+        g.append('circle')
+            .attr('class', 'highlight-circle')
+            .attr('r', 7) // slightly larger than our points
+            .style('fill', 'none')
+            .style('display', 'none');
+
+        d3.selectAll(".overlay").remove();
+        // add the overlay on top of everything to take the mouse events
+        g.append('rect')
+            .attr('class', 'overlay')
+            .attr('width', width)
+            .attr('height', height)
+            .style('opacity', 0)
+            .on('mousemove', mouseMoveHandler)
+            .on('mouseleave', () => {
+                // hide the highlight circle and tooltip when the mouse leaves the chart
+                highlight(null);
+                tooltip.style("opacity", 0);
+            });
+    }
+
+    // callback to highlight a point
+    function highlight(d) {
+        // no point to highlight - hide the circle
+        if (!d) {
+            d3.select('.highlight-circle').style('display', 'none');
+            // otherwise, show the highlight circle and tooltip at the correct position
+        } else {
+            let highlight_circle = d3.select('.highlight-circle')
+                .style('display', '')
+                .style('stroke', colors(d.state))
+                .attr('cx', x(d.year))
+                .attr('cy', y(d.count));
+            tooltip.style("opacity", 0.8)
+                .style("left", highlight_circle.attr("cx") + "px")
+                .style("top", highlight_circle.attr("cy") + "px")
+                .html(d.state + "(" + d.year + ")" + "<br>#Awards: " + formatComma(d.count)
+                    + "<br> Amount: " + formatMoney(d.amount));
+        }
+    }
+
+    // callback for when the mouse moves across the overlay
+    function mouseMoveHandler() {
+        // get the current mouse position
+        const [mx, my] = d3.mouse(this);
+
+        // find the Voronoi site closest to the mouse, limited by max distance voronoiRadius
+        const site = voronoiDiagram.find(mx, my, voronoiRadius);
+
+        // highlight the point if we found one
+        highlight(site && site.data);
+    }
 </script>
 </html>
